@@ -13,6 +13,39 @@ services:
     networks:
       - custom
 
+  migration:
+    image: test-live-migration
+    volumes:
+      - ./test-live-backend:/opt/app
+    command: bash -c "python -m alembic upgrade head"
+    build: 
+      context: ./test-live-backend
+    depends_on:
+      postgres:
+        condition: service_started
+    networks:
+      - custom
+
+  test-live-backend:
+    image: test-live-backend
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+    volumes:
+      - ./test-live-backend:/opt/app
+    command: bash -c "pip install debugpy && python -m debugpy --listen 0.0.0.0:9000 start.py"
+    env_file:
+      - .env
+    build:
+      context: ./test-live-backend
+    depends_on:
+      postgres:
+        condition: service_started
+      migration:
+        condition: service_started
+    networks:
+      - custom
+
 networks:
     custom:
       driver: bridge
